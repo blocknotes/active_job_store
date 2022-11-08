@@ -1,0 +1,25 @@
+---
+inherit_from:
+  - https://relaxed.ruby.style/rubocop.yml
+
+require:
+  - rubocop-packaging
+  - rubocop-performance
+  - rubocop-rails
+  - rubocop-rspec
+
+AllCops:
+  Exclude:
+    - bin/*
+    - gemfiles/**/*
+    - spec/dummy*/**/*
+    - vendor/**/*
+  NewCops: enable
+
+RSpec/ExampleLength:
+  # default 5
+  Max: 12
+
+RSpec/MultipleExpectations:
+  # default 1
+  Max: 4
