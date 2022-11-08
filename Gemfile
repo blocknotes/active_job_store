@@ -7,6 +7,7 @@ gemspec
 
 group :development, :test do
   gem 'activejob'
+  gem 'pg'
   gem 'rails'
   gem 'sqlite3'
 

@@ -16,6 +16,10 @@ AllCops:
     - vendor/**/*
   NewCops: enable
 
+Rails/WhereEquals:
+  Exclude:
+    - app/models/active_job_store/record.rb
+
 RSpec/ExampleLength:
   # default 5
   Max: 12

@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.platform    = Gem::Platform::RUBY
   spec.name        = 'active_job_store'
   spec.version     = ActiveJobStore::VERSION
-  spec.summary     = 'ActiveJob Store'
-  spec.description = 'Persists jobs state on DB'
+  spec.summary     = 'Persist jobs information on DB'
+  spec.description = 'ActiveJob Store permits to store jobs state and custom data on a database'
   spec.license     = 'MIT'
 
   spec.required_ruby_version = '>= 2.6.0'
