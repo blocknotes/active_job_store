@@ -1,5 +1,8 @@
 # ActiveJob Store
 
+[![Gem Version](https://badge.fury.io/rb/active_job_store.svg)](https://badge.fury.io/rb/active_job_store)
+[![Specs Rails 7.0](https://github.com/blocknotes/active_job_store/actions/workflows/specs_70.yml/badge.svg)](https://github.com/blocknotes/active_job_store/actions/workflows/specs_70.yml)
+
 Persist job execution information on a support model `ActiveJobStore::Record`.
 
 It can be useful to:
