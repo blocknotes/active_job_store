@@ -24,7 +24,7 @@ It can be useful to:
 SomeJob.perform_now(123)
 SomeJob.perform_later(456)
 SomeJob.set(wait: 1.minute).perform_later(789)
-"SomeJob", "completed"]]
+
 SomeJob.job_executions.first
 # => #<ActiveJobStore::Record:0x00000001120f6320
 #  id: 1,
