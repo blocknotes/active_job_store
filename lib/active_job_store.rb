@@ -28,10 +28,15 @@ module ActiveJobStore
         end
         store_record.update!(details: job.as_json.except(*IGNORE_ATTRS), state: :started, started_at: Time.current)
         result = block.call
-        result_data = job.active_job_store_format_result(result)
-        store_record.update!(state: :completed, completed_at: Time.current, result: result_data, custom_data: active_job_store_custom_data)
+        formatted_result = job.active_job_store_format_result(result)
+        store_record.update!(
+          state: :completed,
+          completed_at: Time.current,
+          result: formatted_result,
+          custom_data: active_job_store_custom_data
+        )
       rescue StandardError => e
-        store_record.update!(state: :error, exception: e.inspect)
+        store_record.update!(state: :error, exception: e.inspect, custom_data: active_job_store_custom_data)
         raise
       end
     end

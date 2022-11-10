@@ -9,12 +9,12 @@ Persist job execution information on a support model `ActiveJobStore::Record`.
 It can be useful to:
 - improve jobs logging capabilities;
 - query historical data about job executions;
-- track a job's state or progress;
-- extract job's statistical data.
+- extract job's statistical data;
+- track a job's state or add custom data to the jobs.
 
 Support some customizations:
 - set custom data attributes (via `active_job_store_custom_data` accessor);
-- format the job result to store (overriding `active_job_store_format_result`).
+- format the job result to store (overriding `active_job_store_format_result` method).
 
 ## Installation
 
