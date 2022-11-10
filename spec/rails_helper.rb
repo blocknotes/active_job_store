@@ -3,6 +3,9 @@
 require 'spec_helper'
 ENV['RAILS_ENV'] = 'test'
 
+require 'simplecov'
+SimpleCov.start 'rails'
+
 app_ver = ENV.fetch('RAILS', '7.0').tr('.', '')
 require File.expand_path("dummy#{app_ver}/config/environment.rb", __dir__)
 
