@@ -136,4 +136,37 @@ RSpec.describe ActiveJobStore do
       expect(ActiveJobStore::Record.last).to have_attributes(expected_attributes)
     end
   end
+
+  context 'when an exception is raised during the job execution' do
+    let(:perform_now) { TestJob.perform_now(111) }
+    let(:test_job_class) do
+      Class.new(ApplicationJob) do
+        include ActiveJobStore
+
+        def perform(test_arg) # rubocop:disable Lint/UnusedMethodArgument
+          self.active_job_store_custom_data = []
+
+          active_job_store_custom_data << 'step-1'
+          raise 'Some exception'
+
+          active_job_store_custom_data << 'step-2' # rubocop:disable Lint/UnreachableCode
+
+          'some result'
+        end
+      end
+    end
+
+    it 'stores the exception message in the ActiveJobStore Record', :aggregate_failures do
+      expect { perform_now }.to raise_exception('Some exception').and change(ActiveJobStore::Record, :count).by(1)
+
+      expected_attributes = {
+        job_class: 'TestJob',
+        state: 'error',
+        arguments: [111],
+        custom_data: nil,
+        exception: '#<RuntimeError: Some exception>'
+      }
+      expect(ActiveJobStore::Record.last).to have_attributes(expected_attributes)
+    end
+  end
 end

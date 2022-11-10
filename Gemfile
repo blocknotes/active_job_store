@@ -13,6 +13,7 @@ group :development, :test do
 
   # Testing
   gem 'rspec-rails'
+  gem 'simplecov', require: false
 
   # Linters
   gem 'brakeman'
