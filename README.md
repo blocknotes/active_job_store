@@ -2,13 +2,19 @@
 
 [![Gem Version](https://badge.fury.io/rb/active_job_store.svg)](https://badge.fury.io/rb/active_job_store)
 [![Specs Rails 7.0](https://github.com/blocknotes/active_job_store/actions/workflows/specs_70.yml/badge.svg)](https://github.com/blocknotes/active_job_store/actions/workflows/specs_70.yml)
+[![Linters](https://github.com/blocknotes/active_job_store/actions/workflows/linters.yml/badge.svg)](https://github.com/blocknotes/active_job_store/actions/workflows/linters.yml)
 
 Persist job execution information on a support model `ActiveJobStore::Record`.
 
 It can be useful to:
 - improve jobs logging capabilities;
 - query historical data about job executions;
+- track a job's state or progress;
 - extract job's statistical data.
+
+Support some customizations:
+- set custom data attributes (via `active_job_store_custom_data` accessor);
+- format the job result to store (overriding `active_job_store_format_result`).
 
 ## Installation
 
@@ -62,7 +68,7 @@ SomeJob.job_executions.where(started_at: 16.minutes.ago...).pluck(:job_id, :resu
 #  ["267e087e-cfa7-4c88-8d3b-9d40f912733f", "some_result", Wed, 09 Nov 2022 21:13:18.011484000 UTC +00:00]]
 ```
 
-Some statistics:
+Some statistics on completed jobs:
 
 ```rb
 SomeJob.job_executions.completed.map { |job| { id: job.id, execution_time: job.completed_at - job.started_at, started_at: job.started_at } }
