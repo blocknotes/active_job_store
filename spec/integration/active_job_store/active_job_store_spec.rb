@@ -163,7 +163,7 @@ RSpec.describe ActiveJobStore do
         job_class: 'TestJob',
         state: 'error',
         arguments: [111],
-        custom_data: nil,
+        custom_data: ['step-1'],
         exception: '#<RuntimeError: Some exception>'
       }
       expect(ActiveJobStore::Record.last).to have_attributes(expected_attributes)
