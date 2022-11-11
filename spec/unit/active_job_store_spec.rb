@@ -28,17 +28,6 @@ RSpec.describe ActiveJobStore do
     end
   end
 
-  describe '#active_job_store_reference' do
-    subject(:active_job_store_reference) { TestJob.new.active_job_store_reference }
-
-    it 'returns the job reference attributes' do
-      expect(active_job_store_reference).to match(
-        job_class: 'TestJob',
-        job_id: a_kind_of(String)
-      )
-    end
-  end
-
   describe '#active_job_store_format_result' do
     subject(:active_job_store_format_result) { TestJob.new.active_job_store_format_result(123) }
 

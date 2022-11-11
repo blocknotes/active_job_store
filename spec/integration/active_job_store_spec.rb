@@ -27,11 +27,16 @@ RSpec.describe ActiveJobStore do
     it 'creates an ActiveJobStore::Record with state completed', :aggregate_failures do
       expect { perform_now }.to output("123\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
 
+      expected_details = a_hash_including(
+        'executions' => 1,
+        'queue_name' => 'default'
+      )
       expected_attributes = {
         job_class: 'TestJob',
         state: 'completed',
         arguments: [123],
         custom_data: nil,
+        details: expected_details,
         result: 'some result',
         started_at: Time.current,
         completed_at: Time.current
