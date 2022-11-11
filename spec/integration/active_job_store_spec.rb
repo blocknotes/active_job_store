@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe ActiveJobStore do
+  include_context 'with queries tracking'
+
   let(:test_job_class) do
     Class.new(ApplicationJob) do
       include ActiveJobStore
@@ -19,7 +21,7 @@ RSpec.describe ActiveJobStore do
     stub_const('TestJob', test_job_class)
   end
 
-  context 'when using perform_now', freeze_time: '2022-10-14 12:34:56' do
+  context 'when using perform_now', :freeze_time do
     let(:perform_now) { TestJob.perform_now(123) }
 
     it 'creates an ActiveJobStore::Record with state completed', :aggregate_failures do
@@ -36,9 +38,29 @@ RSpec.describe ActiveJobStore do
       }
       expect(ActiveJobStore::Record.last).to have_attributes(expected_attributes)
     end
+
+    it 'executes only the expected queries', :aggregate_failures do
+      queries = []
+      enable_queries_tracking { |query| queries << query }
+      expect { perform_now }.to output("123\n").to_stdout
+
+      expected_queries = [
+        'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_id" = ? AND "active_job_store"."job_class" = ? LIMIT ?',
+        'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'UPDATE "active_job_store" SET "state" = ?, "result" = ?, "completed_at" = ? WHERE "active_job_store"."id" = ?'
+      ]
+      expect(queries.pluck(:sql)).to match_array(expected_queries)
+
+      details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'timezone' => 'UTC' }
+      expected_insert_values = [a_kind_of(String), 'TestJob', 'started', [123], nil, details, nil, nil, nil, Time.current, nil, Time.current]
+      expect(queries[1]).to include(values: expected_insert_values)
+
+      expected_update_values = ['completed', 'some result', Time.current, 1]
+      expect(queries[2]).to include(values: expected_update_values)
+    end
   end
 
-  context 'when using perform_later', freeze_time: '2022-10-14 12:34:56' do
+  context 'when using perform_later', :freeze_time do
     let(:perform_later) { TestJob.perform_later('some arg') }
 
     it 'creates an ActiveJobStore::Record with state enqueued', :aggregate_failures do
@@ -52,9 +74,30 @@ RSpec.describe ActiveJobStore do
       }
       expect(ActiveJobStore::Record.last).to have_attributes(expected_attributes)
     end
+
+    it 'executes only the expected queries', :aggregate_failures do
+      queries = []
+      enable_queries_tracking { |query| queries << query }
+      perform_later
+
+      expected_queries = [
+        'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_id" = ? AND "active_job_store"."job_class" = ? LIMIT ?',
+        'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."id" = ? LIMIT ?',
+        'UPDATE "active_job_store" SET "state" = ?, "enqueued_at" = ? WHERE "active_job_store"."id" = ?'
+      ]
+      expect(queries.pluck(:sql).map(&:strip)).to match_array(expected_queries)
+
+      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => {}, 'timezone' => 'UTC' }
+      expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', ['some arg'], nil, details, nil, nil, nil, nil, nil, Time.current]
+      expect(queries[1]).to include(values: expected_insert_values)
+
+      expected_update_values = ['enqueued', Time.current, 1]
+      expect(queries[3]).to include(values: expected_update_values)
+    end
   end
 
-  context 'when using wait and perform_later', freeze_time: '2022-10-14 12:34:56' do
+  context 'when using wait and perform_later', :freeze_time do
     let(:perform_later) { TestJob.set(wait: 1.minute).perform_later(true) }
 
     it 'creates an ActiveJobStore::Record with state enqueued', :aggregate_failures do
@@ -67,6 +110,27 @@ RSpec.describe ActiveJobStore do
         enqueued_at: Time.current
       }
       expect(ActiveJobStore::Record.last).to have_attributes(expected_attributes)
+    end
+
+    it 'executes only the expected queries', :aggregate_failures do
+      queries = []
+      enable_queries_tracking { |query| queries << query }
+      perform_later
+
+      expected_queries = [
+        'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_id" = ? AND "active_job_store"."job_class" = ? LIMIT ?',
+        'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."id" = ? LIMIT ?',
+        'UPDATE "active_job_store" SET "state" = ?, "enqueued_at" = ? WHERE "active_job_store"."id" = ?'
+      ]
+      expect(queries.pluck(:sql).map(&:strip)).to match_array(expected_queries)
+
+      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => {}, 'scheduled_at' => a_kind_of(Float), 'timezone' => 'UTC' }
+      expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', [true], nil, details, nil, nil, nil, nil, nil, Time.current]
+      expect(queries[1]).to include(values: expected_insert_values)
+
+      expected_update_values = ['enqueued', Time.current, 1]
+      expect(queries[3]).to include(values: expected_update_values)
     end
   end
 
