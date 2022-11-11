@@ -44,6 +44,10 @@ module ActiveJobStore
       record
     end
 
+    def update_job_custom_data(custom_data)
+      record.update!(custom_data: custom_data)
+    end
+
     private
 
     def record_reference(job)

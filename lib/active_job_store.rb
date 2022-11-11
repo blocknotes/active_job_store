@@ -34,6 +34,11 @@ module ActiveJobStore
     result
   end
 
+  def save_job_custom_data(custom_data = nil)
+    self.active_job_store_custom_data = custom_data if custom_data
+    store.update_job_custom_data(active_job_store_custom_data)
+  end
+
   module ClassMethods
     def job_executions
       ::ActiveJobStore::Record.where(job_class: to_s)

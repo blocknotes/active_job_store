@@ -10,7 +10,7 @@ It can be useful to:
 - improve jobs logging capabilities;
 - query historical data about job executions;
 - extract job's statistical data;
-- track a job's state or add custom data to the jobs.
+- track a job's state / set progress value / add custom data to the jobs.
 
 Support some customizations:
 - set custom data attributes (via `active_job_store_custom_data` accessor);
@@ -79,7 +79,28 @@ SomeJob.job_executions.completed.map { |job| { id: job.id, execution_time: job.c
 
 ## Customizations
 
-If you need to store custom data, use `active_job_store_custom_data` accessor:
+To store the custom data (ex. a progress value):
+
+```rb
+class AnotherJob < ApplicationJob
+  include ActiveJobStore
+
+  def perform
+    # do something...
+    save_job_custom_data(progress: 0.5)
+    # do something else...
+    save_job_custom_data(progress: 1.0)
+
+    'some_result'
+  end
+end
+
+# Usage example:
+AnotherJob.perform_later(456)
+AnotherJob.job_executions.last.custom_data['progress'] # 1.0 (at the end)
+```
+
+If you need to manipulate the custom data, there is the `active_job_store_custom_data` accessor:
 
 ```rb
 class AnotherJob < ApplicationJob
@@ -96,6 +117,7 @@ class AnotherJob < ApplicationJob
   end
 end
 
+# Usage example:
 AnotherJob.perform_now(123)
 AnotherJob.job_executions.last.custom_data
 # => [{"time"=>"2022-11-09T21:20:57.580Z", "message"=>"SomeJob step 1"}, {"time"=>"2022-11-09T21:20:58.581Z", "message"=>"SomeJob step 2"}]
@@ -116,6 +138,7 @@ class AnotherJob < ApplicationJob
   end
 end
 
+# Usage example:
 AnotherJob.perform_now(123)
 AnotherJob.job_executions.last.result
 # => 84
