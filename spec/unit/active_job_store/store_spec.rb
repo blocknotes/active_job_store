@@ -87,7 +87,9 @@ RSpec.describe ActiveJobStore::Store do
   describe '#prepare_record_on_perform' do
     subject(:prepare_record_on_perform) { described_class.new.prepare_record_on_perform(job) }
 
-    let(:job) { double('SomeJob', job_id: 'some-id', arguments: [123]) } # rubocop:disable RSpec/VerifiedDoubles
+    let(:job) do
+      double('SomeJob', job_id: 'some-id', arguments: [123], exception_executions: nil, executions: nil, priority: nil, queue_name: nil, scheduled_at: nil, timezone: nil) # rubocop:disable RSpec/VerifiedDoubles
+    end
     let(:record) { instance_double(ActiveJobStore::Record, 'details=' => nil) }
 
     before { allow(ActiveJobStore::Record).to receive(:find_or_initialize_by).and_return(record) }

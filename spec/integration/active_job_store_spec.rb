@@ -56,7 +56,7 @@ RSpec.describe ActiveJobStore do
       ]
       expect(queries.pluck(:sql)).to match_array(expected_queries)
 
-      details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'timezone' => 'UTC' }
+      details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => nil, 'timezone' => 'UTC' }
       expected_insert_values = [a_kind_of(String), 'TestJob', 'started', [123], nil, details, nil, nil, nil, Time.current, nil, Time.current]
       expect(queries[1]).to include(values: expected_insert_values)
 
@@ -93,7 +93,7 @@ RSpec.describe ActiveJobStore do
       ]
       expect(queries.pluck(:sql).map(&:strip)).to match_array(expected_queries)
 
-      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => {}, 'timezone' => 'UTC' }
+      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => nil, 'timezone' => 'UTC' }
       expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', ['some arg'], nil, details, nil, nil, nil, nil, nil, Time.current]
       expect(queries[1]).to include(values: expected_insert_values)
 
@@ -130,7 +130,7 @@ RSpec.describe ActiveJobStore do
       ]
       expect(queries.pluck(:sql).map(&:strip)).to match_array(expected_queries)
 
-      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => {}, 'scheduled_at' => a_kind_of(Float), 'timezone' => 'UTC' }
+      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => a_kind_of(Float), 'timezone' => 'UTC' }
       expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', [true], nil, details, nil, nil, nil, nil, nil, Time.current]
       expect(queries[1]).to include(values: expected_insert_values)
 
@@ -236,6 +236,105 @@ RSpec.describe ActiveJobStore do
         exception: '#<RuntimeError: Some exception>'
       }
       expect(ActiveJobStore::Record.last).to have_attributes(expected_attributes)
+    end
+  end
+
+  context 'when updating custom data during the perform' do
+    let(:perform_now) { TestJob.perform_now(111) }
+    let(:test_job_class) do
+      Class.new(ApplicationJob) do
+        include ActiveJobStore
+
+        def perform(test_arg) # rubocop:disable Lint/UnusedMethodArgument
+          save_job_custom_data(progress: 0.5)
+          # do something else ...
+          save_job_custom_data(progress: 1.0)
+
+          'some result'
+        end
+      end
+    end
+
+    it 'executes only the expected queries', :aggregate_failures, :freeze_time do
+      queries = []
+      enable_queries_tracking { |query| queries << query }
+      perform_now
+
+      expected_queries = [
+        'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_id" = ? AND "active_job_store"."job_class" = ? LIMIT ?',
+        'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'UPDATE "active_job_store" SET "custom_data" = ? WHERE "active_job_store"."id" = ?',
+        'UPDATE "active_job_store" SET "custom_data" = ? WHERE "active_job_store"."id" = ?',
+        'UPDATE "active_job_store" SET "state" = ?, "result" = ?, "completed_at" = ? WHERE "active_job_store"."id" = ?'
+      ]
+      expect(queries.pluck(:sql)).to match_array(expected_queries)
+
+      details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => nil, 'timezone' => 'UTC' }
+      expected_insert_values = [a_kind_of(String), 'TestJob', 'started', [111], nil, details, nil, nil, nil, Time.current, nil, Time.current]
+      expect(queries[1]).to include(values: expected_insert_values)
+      expect(queries[2]).to include(values: [{ 'progress' => 0.5 }, 1])
+      expect(queries[3]).to include(values: [{ 'progress' => 1.0 }, 1])
+      expect(queries[4]).to include(values: ['completed', 'some result', Time.current, 1])
+    end
+
+    context 'with a stubbed record' do
+      let(:record) { instance_double(ActiveJobStore::Record, 'details=': nil, update!: nil) }
+
+      before do
+        allow(ActiveJobStore::Record).to receive(:find_or_initialize_by).and_return(record)
+      end
+
+      it 'stores custom data in the ActiveJobStore Record', :aggregate_failures, :freeze_time do
+        perform_now
+
+        expect(record).to have_received(:update!).with(started_at: Time.current, state: :started).ordered
+        expect(record).to have_received(:update!).with(custom_data: { progress: 0.5 }).ordered
+        expect(record).to have_received(:update!).with(custom_data: { progress: 1.0 }).ordered
+
+        expected_attributes = {
+          completed_at: Time.current,
+          custom_data: { progress: 1.0 },
+          result: 'some result',
+          state: :completed
+        }
+        expect(record).to have_received(:update!).with(expected_attributes).ordered
+      end
+    end
+  end
+
+  context 'when querying the job executions list' do
+    let(:job_executions) { TestJob.job_executions }
+
+    it 'executes only the expected queries', :aggregate_failures do
+      queries = []
+      enable_queries_tracking { |query| queries << query }
+      job_executions.to_a
+
+      expected_query = {
+        sql: 'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_class" = ?',
+        values: ['TestJob']
+      }
+      expect(queries).to match_array([expected_query])
+    end
+
+    it 'uses the defined index when listing job executions', :aggregate_failures do
+      expect { TestJob.perform_now(123) }.to output("123\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+      expect { TestJob.perform_now(234) }.to output("234\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+      expect { TestJob.perform_now(345) }.to output("345\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+
+      expect(job_executions.explain).to include 'USING INDEX index_active_job_store_on_job_class_and_state'
+      completed_jobs = TestJob.job_executions.completed
+      expect(completed_jobs.explain).to include 'USING INDEX index_active_job_store_on_job_class_and_state'
+    end
+
+    it 'uses the defined index when looking for a specific job' do
+      expect { TestJob.perform_now(123) }.to output("123\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+      expect { TestJob.perform_now(234) }.to output("234\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+      expect { TestJob.perform_now(345) }.to output("345\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+
+      job_id = job_executions.first.job_id
+      find_by_job = TestJob.job_executions.where(job_id: job_id).limit(1)
+      expect(find_by_job.explain).to include 'USING INDEX index_active_job_store_on_job_class_and_job_id'
     end
   end
 end
