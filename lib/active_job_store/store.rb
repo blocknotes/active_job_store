@@ -2,7 +2,7 @@
 
 module ActiveJobStore
   class Store
-    IGNORE_ATTRS = %w[arguments store job_id successfully_enqueued].freeze
+    DETAILS_ATTRS = %w[exception_executions executions priority queue_name scheduled_at timezone].freeze
 
     attr_reader :record
 
@@ -31,7 +31,7 @@ module ActiveJobStore
     def prepare_record_on_enqueue(job)
       @record = ::ActiveJobStore::Record.find_or_create_by!(record_reference(job)) do |record|
         record.arguments = job.arguments
-        record.details = job.as_json.except(*IGNORE_ATTRS)
+        record.details = DETAILS_ATTRS.zip(DETAILS_ATTRS.map { job.send(_1) }).to_h
         record.state = :initialized
       end
     end
@@ -40,7 +40,7 @@ module ActiveJobStore
       @record = ::ActiveJobStore::Record.find_or_initialize_by(record_reference(job)) do |record|
         record.arguments = job.arguments
       end
-      record.details = job.as_json.except(*IGNORE_ATTRS)
+      record.details = DETAILS_ATTRS.zip(DETAILS_ATTRS.map { job.send(_1) }).to_h
       record
     end
 

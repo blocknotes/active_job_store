@@ -56,7 +56,7 @@ RSpec.describe ActiveJobStore do
       ]
       expect(queries.pluck(:sql)).to match_array(expected_queries)
 
-      details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'timezone' => 'UTC' }
+      details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => nil, 'timezone' => 'UTC' }
       expected_insert_values = [a_kind_of(String), 'TestJob', 'started', [123], nil, details, nil, nil, nil, Time.current, nil, Time.current]
       expect(queries[1]).to include(values: expected_insert_values)
 
@@ -93,7 +93,7 @@ RSpec.describe ActiveJobStore do
       ]
       expect(queries.pluck(:sql).map(&:strip)).to match_array(expected_queries)
 
-      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => {}, 'timezone' => 'UTC' }
+      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => nil, 'timezone' => 'UTC' }
       expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', ['some arg'], nil, details, nil, nil, nil, nil, nil, Time.current]
       expect(queries[1]).to include(values: expected_insert_values)
 
@@ -130,7 +130,7 @@ RSpec.describe ActiveJobStore do
       ]
       expect(queries.pluck(:sql).map(&:strip)).to match_array(expected_queries)
 
-      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => {}, 'scheduled_at' => a_kind_of(Float), 'timezone' => 'UTC' }
+      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => a_kind_of(Float), 'timezone' => 'UTC' }
       expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', [true], nil, details, nil, nil, nil, nil, nil, Time.current]
       expect(queries[1]).to include(values: expected_insert_values)
 
@@ -269,7 +269,7 @@ RSpec.describe ActiveJobStore do
       ]
       expect(queries.pluck(:sql)).to match_array(expected_queries)
 
-      details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'timezone' => 'UTC' }
+      details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => nil, 'timezone' => 'UTC' }
       expected_insert_values = [a_kind_of(String), 'TestJob', 'started', [111], nil, details, nil, nil, nil, Time.current, nil, Time.current]
       expect(queries[1]).to include(values: expected_insert_values)
       expect(queries[2]).to include(values: [{ 'progress' => 0.5 }, 1])
