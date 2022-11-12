@@ -301,4 +301,40 @@ RSpec.describe ActiveJobStore do
       end
     end
   end
+
+  context 'when querying the job executions list' do
+    let(:job_executions) { TestJob.job_executions }
+
+    it 'executes only the expected queries', :aggregate_failures do
+      queries = []
+      enable_queries_tracking { |query| queries << query }
+      job_executions.to_a
+
+      expected_query = {
+        sql: 'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_class" = ?',
+        values: ['TestJob']
+      }
+      expect(queries).to match_array([expected_query])
+    end
+
+    it 'uses the defined index when listing job executions', :aggregate_failures do
+      expect { TestJob.perform_now(123) }.to output("123\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+      expect { TestJob.perform_now(234) }.to output("234\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+      expect { TestJob.perform_now(345) }.to output("345\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+
+      expect(job_executions.explain).to include 'USING INDEX index_active_job_store_on_job_class_and_state'
+      completed_jobs = TestJob.job_executions.completed
+      expect(completed_jobs.explain).to include 'USING INDEX index_active_job_store_on_job_class_and_state'
+    end
+
+    it 'uses the defined index when looking for a specific job' do
+      expect { TestJob.perform_now(123) }.to output("123\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+      expect { TestJob.perform_now(234) }.to output("234\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+      expect { TestJob.perform_now(345) }.to output("345\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
+
+      job_id = job_executions.first.job_id
+      find_by_job = TestJob.job_executions.where(job_id: job_id).limit(1)
+      expect(find_by_job.explain).to include 'USING INDEX index_active_job_store_on_job_class_and_job_id'
+    end
+  end
 end
