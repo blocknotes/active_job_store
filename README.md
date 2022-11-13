@@ -7,14 +7,11 @@
 Persist job execution information on a support model `ActiveJobStore::Record`.
 
 It can be useful to:
-- improve jobs logging capabilities;
-- query historical data about job executions;
-- extract job's statistical data;
-- track a job's state / set progress value / add custom data to the jobs.
+- store the job's state / set progress value / add custom data to the jobs;
+- query historical data about job executions / extract job's statistical data;
+- improve jobs' logging capabilities.
 
-Support some customizations:
-- set custom data attributes (via `active_job_store_custom_data` accessor);
-- format the job result to store (overriding `active_job_store_format_result` method).
+Please ⭐ if you like it.
 
 ## Installation
 
@@ -23,6 +20,18 @@ Support some customizations:
 - Apply the new migrations: `bundle exec rails db:migrate`
 - Add to your job `include ActiveJobStore` (or to your `ApplicationJob` class if you prefer)
 - Access to the job executions data using the class method `job_executions` on your job (ex. `YourJob.job_executions`)
+
+## API
+
+attr_accessor on the jobs:
+- `active_job_store_custom_data`: to set / manipulate job's custom data
+
+Instance methods on the jobs:
+- `active_job_store_format_result(result) => result2`: to format / manipulate / serialize the job result
+- `save_job_custom_data(custom_data = nil)`: to persist custom data while the job is performing
+
+Class methods on the jobs:
+- `job_executions => relation`: query the list of job executions for the specific job class (returns an ActiveRecord Relation)
 
 ## Usage examples
 
@@ -48,18 +57,6 @@ SomeJob.job_executions.first
 #  created_at: Wed, 09 Nov 2022 21:09:50.611900000 UTC +00:00>
 ```
 
-Extract some logs:
-
-```rb
-puts ::ActiveJobStore::Record.order(id: :desc).pluck(:created_at, :job_class, :arguments, :state, :completed_at).map { _1.join(', ') }
-# 2022-11-09 21:20:57 UTC, SomeJob, 123, completed, 2022-11-09 21:20:58 UTC
-# 2022-11-09 21:18:26 UTC, AnotherJob, another test 2, completed, 2022-11-09 21:18:26 UTC
-# 2022-11-09 21:13:18 UTC, SomeJob, Some test 3, completed, 2022-11-09 21:13:19 UTC
-# 2022-11-09 21:12:18 UTC, SomeJob, Some test 2, error,
-# 2022-11-09 21:10:13 UTC, AnotherJob, another test, completed, 2022-11-09 21:10:13 UTC
-# 2022-11-09 21:09:50 UTC, SomeJob, Some test, completed, 2022-11-09 21:09:50 UTC
-```
-
 Query jobs in a specific range of time:
 
 ```rb
@@ -77,7 +74,19 @@ SomeJob.job_executions.completed.map { |job| { id: job.id, execution_time: job.c
 #  {:id=>1, :execution_time=>0.011442, :started_at=>Wed, 09 Nov 2022 21:09:50.611355000 UTC +00:00}]
 ```
 
-## Customizations
+Extract some logs:
+
+```rb
+puts ::ActiveJobStore::Record.order(id: :desc).pluck(:created_at, :job_class, :arguments, :state, :completed_at).map { _1.join(', ') }
+# 2022-11-09 21:20:57 UTC, SomeJob, 123, completed, 2022-11-09 21:20:58 UTC
+# 2022-11-09 21:18:26 UTC, AnotherJob, another test 2, completed, 2022-11-09 21:18:26 UTC
+# 2022-11-09 21:13:18 UTC, SomeJob, Some test 3, completed, 2022-11-09 21:13:19 UTC
+# 2022-11-09 21:12:18 UTC, SomeJob, Some test 2, error,
+# 2022-11-09 21:10:13 UTC, AnotherJob, another test, completed, 2022-11-09 21:10:13 UTC
+# 2022-11-09 21:09:50 UTC, SomeJob, Some test, completed, 2022-11-09 21:09:50 UTC
+```
+
+## Features' details
 
 To store the custom data (ex. a progress value):
 
@@ -100,7 +109,7 @@ AnotherJob.perform_later(456)
 AnotherJob.job_executions.last.custom_data['progress'] # 1.0 (at the end)
 ```
 
-If you need to manipulate the custom data, there is the `active_job_store_custom_data` accessor:
+To manipulate the custom data, there is the `active_job_store_custom_data` accessor:
 
 ```rb
 class AnotherJob < ApplicationJob
@@ -123,7 +132,7 @@ AnotherJob.job_executions.last.custom_data
 # => [{"time"=>"2022-11-09T21:20:57.580Z", "message"=>"SomeJob step 1"}, {"time"=>"2022-11-09T21:20:58.581Z", "message"=>"SomeJob step 2"}]
 ```
 
-If for any reason it's needed to process the result before storing it, just override `active_job_store_format_result`:
+To process the result before storing it (ex. for serialization), override `active_job_store_format_result`:
 
 ```rb
 class AnotherJob < ApplicationJob
