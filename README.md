@@ -28,6 +28,7 @@ attr_accessor on the jobs:
 
 Instance methods on the jobs:
 - `active_job_store_format_result(result) => result2`: to format / manipulate / serialize the job result
+- `active_job_store_record => store record`: returns the store's record
 - `save_job_custom_data(custom_data = nil)`: to persist custom data while the job is performing
 
 Class methods on the jobs:
@@ -84,6 +85,21 @@ puts ::ActiveJobStore::Record.order(id: :desc).pluck(:created_at, :job_class, :a
 # 2022-11-09 21:12:18 UTC, SomeJob, Some test 2, error,
 # 2022-11-09 21:10:13 UTC, AnotherJob, another test, completed, 2022-11-09 21:10:13 UTC
 # 2022-11-09 21:09:50 UTC, SomeJob, Some test, completed, 2022-11-09 21:09:50 UTC
+```
+
+Query information from a job (even when it's performing):
+
+```rb
+job = SomeJob.perform_later 123
+job.active_job_store_record.slice(:job_id, :job_class, :arguments)
+# => {"job_id"=>"b009f7c7-a264-4fb5-a1f8-68a8141f323b", "job_class"=>"SomeJob", "arguments"=>[123]}
+
+job = AnotherJob.perform_later 456
+job.active_job_store_record.custom_data
+# => {"progress"=>0.5}
+### After a while:
+job.active_job_store_record.reload.custom_data
+# => {"progress"=>1.0}
 ```
 
 ## Features' details

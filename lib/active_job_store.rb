@@ -24,6 +24,22 @@ module ActiveJobStore
     store.update_job_custom_data(active_job_store_custom_data)
   end
 
+  # Return the associated Active Job Store record
+  #
+  # @return [ActiveJobStore::Record] the corresponding record
+  def active_job_store_record
+    store.record
+  end
+
+  module ClassMethods
+    # Query the list of job executions for the current job class
+    #
+    # @return [ActiveRecord Relation] query result
+    def job_executions
+      ::ActiveJobStore::Record.where(job_class: to_s)
+    end
+  end
+
   class << self
     def included(base)
       base.extend(ClassMethods)
@@ -45,15 +61,6 @@ module ActiveJobStore
         store.job_failed!(exception: e, custom_data: active_job_store_custom_data)
         raise
       end
-    end
-  end
-
-  module ClassMethods
-    # Query the list of job executions for the current job class
-    #
-    # @return [ActiveRecord Relation] query result
-    def job_executions
-      ::ActiveJobStore::Record.where(job_class: to_s)
     end
   end
 
