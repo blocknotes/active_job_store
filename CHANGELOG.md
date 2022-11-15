@@ -2,6 +2,11 @@
 
 Permits to store jobs state and custom data on a database.
 
+## 0.3.0
+
+- feat: internal refactoring
+- feat: expose the store's record from the job
+
 ## 0.2.0
 
 - feat: permit to save the custom data while performing a job
