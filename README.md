@@ -11,6 +11,8 @@ It can be useful to:
 - query historical data about job executions / extract job's statistical data;
 - improve jobs' logging capabilities.
 
+By default gem's internal errors are sent to stderr without compromising the job's perform.
+
 Please ⭐ if you like it.
 
 ## Installation
@@ -28,6 +30,7 @@ attr_accessor on the jobs:
 
 Instance methods on the jobs:
 - `active_job_store_format_result(result) => result2`: to format / manipulate / serialize the job result
+- `active_job_store_internal_error(context, exception)`: handler for internal errors
 - `active_job_store_record => store record`: returns the store's record
 - `save_job_custom_data(custom_data = nil)`: to persist custom data while the job is performing
 
@@ -87,7 +90,7 @@ puts ::ActiveJobStore::Record.order(id: :desc).pluck(:created_at, :job_class, :a
 # 2022-11-09 21:09:50 UTC, SomeJob, Some test, completed, 2022-11-09 21:09:50 UTC
 ```
 
-Query information from a job (even when it's performing):
+Query information from a job (even while performing):
 
 ```rb
 job = SomeJob.perform_later 123
@@ -102,9 +105,9 @@ job.active_job_store_record.reload.custom_data
 # => {"progress"=>1.0}
 ```
 
-## Features' details
+## Features' examples
 
-To store the custom data (ex. a progress value):
+To persist some custom data during the perform (ex. a progress value):
 
 ```rb
 class AnotherJob < ApplicationJob
@@ -125,7 +128,7 @@ AnotherJob.perform_later(456)
 AnotherJob.job_executions.last.custom_data['progress'] # 1.0 (at the end)
 ```
 
-To manipulate the custom data, there is the `active_job_store_custom_data` accessor:
+To manipulate the custom data persisted only at the end:
 
 ```rb
 class AnotherJob < ApplicationJob
@@ -148,7 +151,7 @@ AnotherJob.job_executions.last.custom_data
 # => [{"time"=>"2022-11-09T21:20:57.580Z", "message"=>"SomeJob step 1"}, {"time"=>"2022-11-09T21:20:58.581Z", "message"=>"SomeJob step 2"}]
 ```
 
-To process the result before storing it (ex. for serialization), override `active_job_store_format_result`:
+To process the job's result before storing it (ex. for serialization):
 
 ```rb
 class AnotherJob < ApplicationJob
@@ -167,6 +170,21 @@ end
 AnotherJob.perform_now(123)
 AnotherJob.job_executions.last.result
 # => 84
+```
+
+To raise an exception also when there is a gem's internal error:
+
+```rb
+class AnotherJob < ApplicationJob
+  include ActiveJobStore
+
+  # ...
+
+  def active_job_store_internal_error(context, exception)
+    raise exception
+    # Or simply monitor these errors using services like Sentry/Honeybadger/etc.
+  end
+end
 ```
 
 ## Do you like it? Star it!
