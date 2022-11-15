@@ -45,21 +45,11 @@ module ActiveJobStore
       base.extend(ClassMethods)
 
       base.around_enqueue do |job, block|
-        store.prepare_record_on_enqueue(job)
-        store.job_enqueued! do
-          block.call
-        end
+        store.around_enqueue(job) { block.call }
       end
 
       base.around_perform do |job, block|
-        store.prepare_record_on_perform(job)
-        store.job_started!
-        result = block.call
-        formatted_result = job.active_job_store_format_result(result)
-        store.job_competed!(custom_data: active_job_store_custom_data, result: formatted_result)
-      rescue StandardError => e
-        store.job_failed!(exception: e, custom_data: active_job_store_custom_data)
-        raise
+        store.around_perform(job) { block.call }
       end
     end
   end
