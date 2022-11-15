@@ -24,28 +24,11 @@ module ActiveJobStore
     store.update_job_custom_data(active_job_store_custom_data)
   end
 
-  class << self
-    def included(base)
-      base.extend(ClassMethods)
-
-      base.around_enqueue do |job, block|
-        store.prepare_record_on_enqueue(job)
-        store.job_enqueued! do
-          block.call
-        end
-      end
-
-      base.around_perform do |job, block|
-        store.prepare_record_on_perform(job)
-        store.job_started!
-        result = block.call
-        formatted_result = job.active_job_store_format_result(result)
-        store.job_competed!(custom_data: active_job_store_custom_data, result: formatted_result)
-      rescue StandardError => e
-        store.job_failed!(exception: e, custom_data: active_job_store_custom_data)
-        raise
-      end
-    end
+  # Return the associated Active Job Store record
+  #
+  # @return [ActiveJobStore::Record] the corresponding record
+  def active_job_store_record
+    store.record
   end
 
   module ClassMethods
@@ -54,6 +37,20 @@ module ActiveJobStore
     # @return [ActiveRecord Relation] query result
     def job_executions
       ::ActiveJobStore::Record.where(job_class: to_s)
+    end
+  end
+
+  class << self
+    def included(base)
+      base.extend(ClassMethods)
+
+      base.around_enqueue do |job, block|
+        store.around_enqueue(job) { block.call }
+      end
+
+      base.around_perform do |job, block|
+        store.around_perform(job) { block.call }
+      end
     end
   end
 

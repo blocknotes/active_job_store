@@ -35,4 +35,18 @@ RSpec.describe ActiveJobStore do
       expect(active_job_store_format_result).to eq 123
     end
   end
+
+  describe '#active_job_store_record' do
+    subject(:active_job_store_record) { job.active_job_store_record }
+
+    let(:job) { TestJob.new }
+    let(:store) { instance_double(ActiveJobStore::Store, record: nil) }
+
+    before { allow(job).to receive(:store).and_return(store) }
+
+    it "returns the store's record" do
+      active_job_store_record
+      expect(store).to have_received(:record)
+    end
+  end
 end
