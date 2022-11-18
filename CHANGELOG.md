@@ -2,6 +2,11 @@
 
 Permits to store jobs state and custom data on a database.
 
+## 0.4.0
+
+- feat: wrap internal errors
+- other: setup overcommit
+
 ## 0.3.0
 
 - feat: internal refactoring
