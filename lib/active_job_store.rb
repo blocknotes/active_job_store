@@ -31,6 +31,13 @@ module ActiveJobStore
     store.record
   end
 
+  # Internal errors handler method
+  #
+  # @param exception [exception] The internal exception
+  def active_job_store_internal_error(context, exception)
+    warn("#{context}: #{exception}")
+  end
+
   module ClassMethods
     # Query the list of job executions for the current job class
     #

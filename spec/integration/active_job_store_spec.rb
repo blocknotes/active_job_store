@@ -327,7 +327,7 @@ RSpec.describe ActiveJobStore do
       expect(completed_jobs.explain).to include 'USING INDEX index_active_job_store_on_job_class_and_state'
     end
 
-    it 'uses the defined index when looking for a specific job' do
+    it 'uses the defined index when looking for a specific job', :aggregate_failures do
       expect { TestJob.perform_now(123) }.to output("123\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
       expect { TestJob.perform_now(234) }.to output("234\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
       expect { TestJob.perform_now(345) }.to output("345\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
@@ -335,6 +335,54 @@ RSpec.describe ActiveJobStore do
       job_id = job_executions.first.job_id
       find_by_job = TestJob.job_executions.where(job_id: job_id).limit(1)
       expect(find_by_job.explain).to include 'USING INDEX index_active_job_store_on_job_class_and_job_id'
+    end
+  end
+
+  context "when there's an internal error" do
+    let(:perform_now) { TestJob.perform_now }
+    let(:test_job_class) do
+      Class.new(ApplicationJob) do
+        include ActiveJobStore
+
+        def perform
+          'some result'
+        end
+      end
+    end
+
+    before do
+      allow(ActiveJobStore::Record).to receive(:find_or_initialize_by).and_raise('internal error')
+    end
+
+    it 'continues to perform the job anyway' do
+      expect { perform_now }.to output("ActiveJobStore::Store around_perform: internal error\n").to_stderr
+      expect(perform_now).to eq 'some result'
+      expect(ActiveJobStore::Record.count).to be_zero
+    end
+  end
+
+  context "when a active_job_store_internal_error is defined and there's an error" do
+    let(:perform_now) { TestJob.perform_now }
+    let(:test_job_class) do
+      Class.new(ApplicationJob) do
+        include ActiveJobStore
+
+        def perform
+          'some result'
+        end
+
+        def active_job_store_internal_error(_context, exception)
+          raise exception
+        end
+      end
+    end
+
+    before do
+      allow(ActiveJobStore::Record).to receive(:find_or_initialize_by).and_raise('internal error')
+    end
+
+    it 'raises the internal error' do
+      expect { perform_now }.to raise_exception('internal error')
     end
   end
 end
