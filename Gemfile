@@ -26,5 +26,6 @@ group :development, :test do
   gem 'rubocop-rspec'
 
   # Tools
+  gem 'overcommit', '~> 0.59'
   gem 'pry-rails'
 end

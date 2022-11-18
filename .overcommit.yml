@@ -1,0 +1,16 @@
+gemfile: '.overcommit_gems.rb'
+
+CommitMsg:
+  CapitalizedSubject:
+    enabled: false
+  HardTabs:
+    enabled: true
+
+PreCommit:
+  RuboCop:
+    enabled: true
+    command: ['bundle', 'exec', 'rubocop']
+    on_warn: fail # Treat all warnings as failures
+    problem_on_unmodified_line: ignore # run RuboCop only on modified code
+  TrailingWhitespace:
+    enabled: true
