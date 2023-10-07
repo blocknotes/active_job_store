@@ -8,12 +8,12 @@ gemspec
 group :development, :test do
   gem 'activejob'
   gem 'pg'
-  gem 'rails'
   gem 'sqlite3'
 
   # Testing
   gem 'rspec-rails'
   gem 'simplecov', require: false
+  gem 'super_diff'
 
   # Linters
   gem 'brakeman'
