@@ -4,10 +4,10 @@ module ActiveJobStore
   class Record < ApplicationRecord
     self.table_name = 'active_job_store'
 
-    serialize :arguments, JSON
-    serialize :custom_data, JSON
-    serialize :details, JSON
-    serialize :result, JSON
+    serialize :arguments, coder: JSON
+    serialize :custom_data, coder: JSON
+    serialize :details, coder: JSON
+    serialize :result, coder: JSON
 
     enum state: { initialized: 0, enqueued: 1, started: 2, completed: 3, error: 4 }
 
