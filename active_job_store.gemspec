@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description = 'ActiveJob Store permits to store jobs state and custom data on a database'
   spec.license     = 'MIT'
 
-  spec.required_ruby_version = '>= 2.6.0'
+  spec.required_ruby_version = '>= 2.7.0'
 
   spec.author   = 'Mattia Roccoberton'
   spec.email    = 'mat@blocknot.es'
@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
   spec.metadata = {
     'homepage_uri' => spec.homepage,
     'source_code_uri' => spec.homepage,
-    'changelog_uri' => 'https://github.com/blocknotes/active_job_store/blob/master/CHANGELOG.md',
+    'changelog_uri' => 'https://github.com/blocknotes/active_job_store/blob/main/CHANGELOG.md',
     'rubygems_mfa_required' => 'true'
   }
 
