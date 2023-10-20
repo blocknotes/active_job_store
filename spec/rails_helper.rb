@@ -28,6 +28,14 @@ rescue ActiveRecord::PendingMigrationError => e
   exit 1
 end
 
+module RSpecUtils
+  module_function
+
+  def rails71?
+    Gem::Version.new(Rails.version) >= Gem::Version.new('7.1')
+  end
+end
+
 RSpec.configure do |config|
   config.fixture_path = "#{::Rails.root}/spec/fixtures"
   config.infer_spec_type_from_file_location!
