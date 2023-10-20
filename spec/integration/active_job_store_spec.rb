@@ -49,16 +49,25 @@ RSpec.describe ActiveJobStore do
       enable_queries_tracking { |query| queries << query }
       expect { perform_now }.to output("123\n").to_stdout
 
+      insert_query =
+        if RSpecUtils.rails71?
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING "id"'
+        elsif RSpecUtils.rails70?
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        else
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "details", "started_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?)'
+        end
+
       expected_queries = [
         'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_id" = ? AND "active_job_store"."job_class" = ? LIMIT ?',
-        'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING "id"',
+        insert_query,
         'UPDATE "active_job_store" SET "state" = ?, "result" = ?, "completed_at" = ? WHERE "active_job_store"."id" = ?'
       ]
       expect(queries.pluck(:sql)).to match_array(expected_queries)
 
       details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => nil, 'timezone' => 'UTC' }
-      expected_insert_values = [a_kind_of(String), 'TestJob', 'started', [123], nil, details, nil, nil, nil, Time.current, nil, Time.current]
-      expect(queries[1]).to include(values: expected_insert_values)
+      expected_insert_values = [a_kind_of(String), 'TestJob', 'started', [123], details, Time.current, Time.current]
+      expect(queries.dig(1, :values).compact).to match(expected_insert_values)
 
       expected_update_values = ['completed', 'some result', Time.current, 1]
       expect(queries[2]).to include(values: expected_update_values)
@@ -85,17 +94,25 @@ RSpec.describe ActiveJobStore do
       enable_queries_tracking { |query| queries << query }
       perform_later
 
+      insert_query =
+        if RSpecUtils.rails71?
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING "id"'
+        elsif RSpecUtils.rails70?
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        else
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "details", "created_at") VALUES (?, ?, ?, ?, ?, ?)'
+        end
       expected_queries = [
         'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_id" = ? AND "active_job_store"."job_class" = ? LIMIT ?',
-        'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING "id"',
+        insert_query,
         'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."id" = ? LIMIT ?',
         'UPDATE "active_job_store" SET "state" = ?, "enqueued_at" = ? WHERE "active_job_store"."id" = ?'
       ]
       expect(queries.pluck(:sql).map(&:strip)).to match_array(expected_queries)
 
       details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => nil, 'timezone' => 'UTC' }
-      expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', ['some arg'], nil, details, nil, nil, nil, nil, nil, Time.current]
-      expect(queries[1]).to include(values: expected_insert_values)
+      expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', ['some arg'], details, Time.current]
+      expect(queries.dig(1, :values).compact).to match(expected_insert_values)
 
       expected_update_values = ['enqueued', Time.current, 1]
       expect(queries[3]).to include(values: expected_update_values)
@@ -122,17 +139,27 @@ RSpec.describe ActiveJobStore do
       enable_queries_tracking { |query| queries << query }
       perform_later
 
+      insert_query =
+        if RSpecUtils.rails71?
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING "id"'
+        elsif RSpecUtils.rails70?
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        else
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "details", "created_at") VALUES (?, ?, ?, ?, ?, ?)'
+        end
+
       expected_queries = [
         'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_id" = ? AND "active_job_store"."job_class" = ? LIMIT ?',
-        'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING "id"',
+        insert_query,
         'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."id" = ? LIMIT ?',
         'UPDATE "active_job_store" SET "state" = ?, "enqueued_at" = ? WHERE "active_job_store"."id" = ?'
       ]
       expect(queries.pluck(:sql).map(&:strip)).to match_array(expected_queries)
 
-      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => a_kind_of(String), 'timezone' => 'UTC' }
-      expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', [true], nil, details, nil, nil, nil, nil, nil, Time.current]
-      expect(queries[1]).to include(values: expected_insert_values)
+      scheduled_at = RSpecUtils.rails71? ? a_kind_of(String) : a_kind_of(Float)
+      details = { 'exception_executions' => {}, 'executions' => 0, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => scheduled_at, 'timezone' => 'UTC' }
+      expected_insert_values = [a_kind_of(String), 'TestJob', 'initialized', [true], details, Time.current]
+      expect(queries.dig(1, :values).compact).to match(expected_insert_values)
 
       expected_update_values = ['enqueued', Time.current, 1]
       expect(queries[3]).to include(values: expected_update_values)
@@ -192,15 +219,17 @@ RSpec.describe ActiveJobStore do
     it 'stores the custom data in the ActiveJobStore Record', :aggregate_failures do
       expect { perform_now }.to output("789\n").to_stdout.and change(ActiveJobStore::Record, :count).by(1)
 
+      custom_data = {
+        'first_key' => 'a value',
+        'second_key' => 1234,
+        'third_key' => false
+      }
+      custom_data.symbolize_keys! unless RSpecUtils.rails71?
       expected_attributes = {
         job_class: 'TestJob',
         state: 'completed',
         arguments: [789],
-        custom_data: {
-          'first_key' => 'a value',
-          'second_key' => 1234,
-          'third_key' => false
-        }
+        custom_data: custom_data
       }
       expect(ActiveJobStore::Record.last).to have_attributes(expected_attributes)
     end
@@ -260,9 +289,18 @@ RSpec.describe ActiveJobStore do
       enable_queries_tracking { |query| queries << query }
       perform_now
 
+      insert_query =
+        if RSpecUtils.rails71?
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING "id"'
+        elsif RSpecUtils.rails70?
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        else
+          'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "details", "started_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?)'
+        end
+
       expected_queries = [
         'SELECT "active_job_store".* FROM "active_job_store" WHERE "active_job_store"."job_id" = ? AND "active_job_store"."job_class" = ? LIMIT ?',
-        'INSERT INTO "active_job_store" ("job_id", "job_class", "state", "arguments", "custom_data", "details", "result", "exception", "enqueued_at", "started_at", "completed_at", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING "id"',
+        insert_query,
         'UPDATE "active_job_store" SET "custom_data" = ? WHERE "active_job_store"."id" = ?',
         'UPDATE "active_job_store" SET "custom_data" = ? WHERE "active_job_store"."id" = ?',
         'UPDATE "active_job_store" SET "state" = ?, "result" = ?, "completed_at" = ? WHERE "active_job_store"."id" = ?'
@@ -270,11 +308,17 @@ RSpec.describe ActiveJobStore do
       expect(queries.pluck(:sql)).to match_array(expected_queries)
 
       details = { 'exception_executions' => {}, 'executions' => 1, 'priority' => nil, 'queue_name' => 'default', 'scheduled_at' => nil, 'timezone' => 'UTC' }
-      expected_insert_values = [a_kind_of(String), 'TestJob', 'started', [111], nil, details, nil, nil, nil, Time.current, nil, Time.current]
-      expect(queries[1]).to include(values: expected_insert_values)
-      expect(queries[2]).to include(values: [{ 'progress' => 0.5 }, 1])
-      expect(queries[3]).to include(values: [{ 'progress' => 1.0 }, 1])
+      expected_insert_values = [a_kind_of(String), 'TestJob', 'started', [111], details, Time.current, Time.current]
+      expect(queries.dig(1, :values).compact).to match(expected_insert_values)
       expect(queries[4]).to include(values: ['completed', 'some result', Time.current, 1])
+
+      if RSpecUtils.rails71?
+        expect(queries[2]).to include(values: [{ 'progress' => 0.5 }, 1])
+        expect(queries[3]).to include(values: [{ 'progress' => 1.0 }, 1])
+      else
+        expect(queries[2]).to include(values: [{ progress: 0.5 }, 1])
+        expect(queries[3]).to include(values: [{ progress: 1.0 }, 1])
+      end
     end
 
     context 'with a stubbed record' do

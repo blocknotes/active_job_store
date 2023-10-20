@@ -1,5 +1,5 @@
 ---
-name: Specs Rails 7.0
+name: Specs Rails 6.1
 
 on:
   pull_request:
@@ -16,6 +16,7 @@ jobs:
         ruby: ['2.7', '3.0', '3.1', '3.2']
 
     env:
+      RAILS: '6.0' # not 6.1 for the dummy app
       RAILS_ENV: test
 
     steps:
@@ -32,7 +33,7 @@ jobs:
         run: bin/rails db:test:prepare
 
       - name: Bundle install
-        run: bin/appraisal rails-70 bundle install
+        run: bin/appraisal rails-61 bundle install
 
       - name: Run tests
-        run: bin/appraisal rails-70 rspec --profile
+        run: bin/appraisal rails-61 rspec --profile

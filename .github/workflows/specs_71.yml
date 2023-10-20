@@ -1,5 +1,5 @@
 ---
-name: Specs Rails 7.0
+name: Specs Rails 7.1
 
 on:
   pull_request:
@@ -32,7 +32,7 @@ jobs:
         run: bin/rails db:test:prepare
 
       - name: Bundle install
-        run: bin/appraisal rails-70 bundle install
+        run: bin/appraisal rails-71 bundle install
 
       - name: Run tests
-        run: bin/appraisal rails-70 rspec --profile
+        run: bin/appraisal rails-71 rspec --profile

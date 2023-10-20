@@ -22,7 +22,7 @@ Rails/WhereEquals:
 
 RSpec/ExampleLength:
   # default 5
-  Max: 20
+  Max: 30
 
 RSpec/MultipleExpectations:
   # default 1
