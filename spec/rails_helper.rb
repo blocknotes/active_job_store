@@ -31,6 +31,10 @@ end
 module RSpecUtils
   module_function
 
+  def rails70?
+    Gem::Version.new(Rails.version) >= Gem::Version.new('7.0')
+  end
+
   def rails71?
     Gem::Version.new(Rails.version) >= Gem::Version.new('7.1')
   end
