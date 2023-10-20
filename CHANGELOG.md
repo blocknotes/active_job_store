@@ -2,6 +2,11 @@
 
 Permits to store jobs state and custom data on a database.
 
+## 0.5.0
+
+- feat: update Record model to handle a Rails deprecation warning
+- test: improve test suite configuration (introducing Appraisal gem + Rails 6.1/7.0/7.1 support)
+
 ## 0.4.0
 
 - feat: wrap internal errors
