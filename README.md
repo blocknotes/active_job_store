@@ -1,7 +1,9 @@
 # ActiveJob Store
 
 [![Gem Version](https://badge.fury.io/rb/active_job_store.svg)](https://badge.fury.io/rb/active_job_store)
+[![Specs Rails 6.1](https://github.com/blocknotes/active_job_store/actions/workflows/specs_61.yml/badge.svg)](https://github.com/blocknotes/active_job_store/actions/workflows/specs_61.yml)
 [![Specs Rails 7.0](https://github.com/blocknotes/active_job_store/actions/workflows/specs_70.yml/badge.svg)](https://github.com/blocknotes/active_job_store/actions/workflows/specs_70.yml)
+[![Specs Rails 7.1](https://github.com/blocknotes/active_job_store/actions/workflows/specs_71.yml/badge.svg)](https://github.com/blocknotes/active_job_store/actions/workflows/specs_71.yml)
 [![Linters](https://github.com/blocknotes/active_job_store/actions/workflows/linters.yml/badge.svg)](https://github.com/blocknotes/active_job_store/actions/workflows/linters.yml)
 
 Persist job execution information on a support model `ActiveJobStore::Record`.
@@ -9,17 +11,17 @@ Persist job execution information on a support model `ActiveJobStore::Record`.
 It can be useful to:
 - store the job's state / set progress value / add custom data to the jobs;
 - query historical data about job executions / extract job's statistical data;
-- improve jobs' logging capabilities.
+- improve jobs' instrumentation / logging capabilities.
 
-By default gem's internal errors are sent to stderr without compromising the job's perform.
+By default gem's internal errors are sent to stderr without compromising the job's execution.
 
 Please ⭐ if you like it.
 
 ## Installation
 
 - Add to your Gemfile `gem 'active_job_store'` (and execute: `bundle`)
-- Copy the gem migrations: `bundle exec rails active_job_store:install:migrations`
-- Apply the new migrations: `bundle exec rails db:migrate`
+- Install the gem's migrations: `bundle exec rails active_job_store:install:migrations`
+- Apply the migrations: `bundle exec rails db:migrate`
 - Add to your job `include ActiveJobStore` (or to your `ApplicationJob` class if you prefer)
 - Access to the job executions data using the class method `job_executions` on your job (ex. `YourJob.job_executions`)
 
@@ -105,9 +107,9 @@ job.active_job_store_record.reload.custom_data
 # => {"progress"=>1.0}
 ```
 
-## Features' examples
+## Setup examples
 
-To persist some custom data during the perform (ex. a progress value):
+Store some custom data during the perform (ex. a progress value):
 
 ```rb
 class AnotherJob < ApplicationJob
@@ -125,10 +127,10 @@ end
 
 # Usage example:
 AnotherJob.perform_later(456)
-AnotherJob.job_executions.last.custom_data['progress'] # 1.0 (at the end)
+AnotherJob.job_executions.last.custom_data['progress'] # 1.0 (after the job's execution)
 ```
 
-To manipulate the custom data persisted only at the end:
+Prepare the custom data but it gets stored only at the end of the job's execution:
 
 ```rb
 class AnotherJob < ApplicationJob
@@ -151,14 +153,14 @@ AnotherJob.job_executions.last.custom_data
 # => [{"time"=>"2022-11-09T21:20:57.580Z", "message"=>"SomeJob step 1"}, {"time"=>"2022-11-09T21:20:58.581Z", "message"=>"SomeJob step 2"}]
 ```
 
-To process the job's result before storing it (ex. for serialization):
+Process the job's result before storing it (ex. for serialization):
 
 ```rb
 class AnotherJob < ApplicationJob
   include ActiveJobStore
 
   def perform(some_id)
-    42
+    21
   end
 
   def active_job_store_format_result(result)
@@ -169,7 +171,7 @@ end
 # Usage example:
 AnotherJob.perform_now(123)
 AnotherJob.job_executions.last.result
-# => 84
+# => 42
 ```
 
 To raise an exception also when there is a gem's internal error:
@@ -181,8 +183,8 @@ class AnotherJob < ApplicationJob
   # ...
 
   def active_job_store_internal_error(context, exception)
+    # Handle the exception (for example using services like Sentry/Honeybadger) and / or raise it again:
     raise exception
-    # Or simply monitor these errors using services like Sentry/Honeybadger/etc.
   end
 end
 ```
